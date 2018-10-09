@@ -1,16 +1,16 @@
 CC = gcc
 CFLAGS = -g -Wall
 
-OperatingSystemsA1 : OperatingSystemsA1.o phones.o persons.o linkedList.o
+main : main.o printStats.o 
+	${CC} ${CFLAGS} -o schedulerSim main.o 
+main.o : printStats.o a2.h
 
-OperatingSystemsA1.o : OperatingSystemsA1.h phones.o persons.o linkedList.o
-
-phones.o persons.o : phones.h persons.h linkedList.o
+printStats.o : a2.h
 
 
-linkedList.o : linkedList.h
 
+.PHONY : clean
 
 
 clean: 
-	rm -f *.o core OperatingSystemsA1
+	rm -f *.o core schedulerSim
