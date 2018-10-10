@@ -7,6 +7,8 @@ main.o : printStats.o a2.h
 
 printStats.o : a2.h
 
+test: main
+	./schedulerSim a2.in
 
 
 .PHONY : clean log

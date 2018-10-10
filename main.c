@@ -14,6 +14,7 @@ int runningProcesses = P_COUNT;
 int quantum = 50;
 int wait = 50;
 char *logMessage = (char *)calloc(sizeof(char), 128);
+FILE *procsData;
 
 // Initialize the Data Structures
 process procs[P_COUNT];
@@ -25,6 +26,11 @@ ui cpu[1];
 if(argc > 1){
 	sprintf(logMessage, "Going to open File %s to populate the Process Array \'procs\'.", argv[1]);
 	appendToLogfile(logMessage);
+	procsData = openDataFile(argv[1]);
+
+	sprintf(logMessage, "Closing file %s.", argv[1]);
+	appendToLogfile(logMessage);
+	closeDataFile(procsData);
 
 }else{
 	ret = 1;
@@ -58,6 +64,17 @@ return(ret);
 
 
 
+FILE *openDataFile(char *fileName){
+  FILE *fp;
+  char *logString = (char *)malloc(75*sizeof(char));
+  sprintf(logString, "Opening Data File with Name: %s.", fileName);
+  appendToLogfile(logString);
+  fp = fopen(fileName, "r");
+  free(logString);
+  return(fp);
+}
+
+
 // Takes a Message, Writes it to the LogFile.
 // This method of timestamping the Log File was inspired by the code located at
 // stack overflow here: https://stackoverflow.com/questions/7411301/how-to-introduce-date-and-time-in-log-file
@@ -72,6 +89,17 @@ void appendToLogfile(char *message){
   fprintf(logFile, "%s: %s\n", timeStamp, message);
   fclose(logFile);
 }
+
+
+void closeDataFile(FILE *fp){
+  fclose(fp);
+}
+
+//Returns the number of processes created.
+int parseDataFile(File *dataFile, process *processArray){
+  
+  }
+
 
 
 
