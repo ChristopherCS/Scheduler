@@ -3,31 +3,35 @@
 #include <stdio.h>
 #include <time.h>
 #include <stdlib.h>
+#include <ctype.h>
+#include <string.h>
 #include "a2.h"
 
 
 
 int main(int argc, char *argv[]){
 // Initialize all the State Variables and Utility Variables.
-int ret = 0;
-int runningProcesses = P_COUNT;
-int quantum = 50;
-int wait = 50;
-char *logMessage = (char *)calloc(sizeof(char), 128);
-FILE *procsData;
+  int ret = 0;
+  int runningProcesses = P_COUNT;
+  int quantum = 50;
+  int wait = 50;
+  int procsLoaded;
+  char *logMessage = (char *)calloc(sizeof(char), 128);
+  FILE *procsData;
 
-// Initialize the Data Structures
-process procs[P_COUNT];
-ui readyQ[P_COUNT];
-ui io[P_COUNT];
-ui cpu[1];
+  // Initialize the Data Structures
+  process procs[P_COUNT];
+  ui readyQ[P_COUNT];
+  ui io[P_COUNT];
+  ui cpu[1];
 
 // Read the File Data in to Initialize the Process Array
 if(argc > 1){
-	sprintf(logMessage, "Going to open File %s to populate the Process Array \'procs\'.", argv[1]);
+	sprintf(logMessage, "Opening File %s to populate the Process Array \'procs\'.", argv[1]);
 	appendToLogfile(logMessage);
 	procsData = openDataFile(argv[1]);
-
+	procsLoaded = parseDataFile(procsData, (process **)&procs);
+  sprintf(logMessage, "Loaded %d processes successfully into the processes array.", procsLoaded);
 	sprintf(logMessage, "Closing file %s.", argv[1]);
 	appendToLogfile(logMessage);
 	closeDataFile(procsData);
@@ -96,9 +100,33 @@ void closeDataFile(FILE *fp){
 }
 
 //Returns the number of processes created.
-int parseDataFile(File *dataFile, process *processArray){
-  
+int parseDataFile(FILE *dataFile, process *processArray[48]){
+  char buffer[4096];
+  char *token;
+  char *tokenCounter;
+  int numberProcessesParsed = 0;
+  int bytesRead;
+  char *logMessage = (char *)calloc(sizeof(char), 128);
+
+  bytesRead = fread(buffer, sizeof(char), sizeof(buffer), dataFile);
+  while(bytesRead > 0){
+    sprintf(logMessage, "Just read %d bytes from the dataFile.", bytesRead);
+    appendToLogfile(logMessage);
+
+    token = strtok_r(buffer, "\n", &tokenCounter);
+    while(token != NULL){
+      sprintf(logMessage, "Processing next line of data:\n\r%s", token);
+      appendToLogfile(logMessage);
+      token = strtok_r(NULL, "\n", &tokenCounter);
+    }
+
+    bytesRead = fread(buffer, sizeof(char), sizeof(buffer), dataFile);
   }
+
+
+  free(logMessage);
+  return(numberProcessesParsed);
+}
 
 
 

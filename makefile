@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -g -Wall
+CFLAGS = -g -Wall -pedantic
 
 main : main.o printStats.o 
 	${CC} ${CFLAGS} -o schedulerSim main.o 
