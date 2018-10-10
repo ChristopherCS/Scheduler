@@ -9,8 +9,11 @@ printStats.o : a2.h
 
 
 
-.PHONY : clean
+.PHONY : clean log
 
 
 clean: 
-	rm -f *.o core schedulerSim
+	rm -f *.o core schedulerSim *.log
+
+log : 
+	cat Scheduler.log

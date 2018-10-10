@@ -31,6 +31,7 @@ typedef struct os_struct os;
 
 // a[] must have count of 48 valid structs 0-47 indexes
 void printStats(process a[], os system);
+void appendToLogfile(char *message);
 
 #endif
 

@@ -2,16 +2,18 @@
 // Author: Chris Carlson
 #include <stdio.h>
 #include <time.h>
+#include <stdlib.h>
 #include "a2.h"
 
 
 
 int main(int argc, char *argv[]){
-// Initialize all the State Variables
+// Initialize all the State Variables and Utility Variables.
 int ret = 0;
 int runningProcesses = P_COUNT;
 int quantum = 50;
 int wait = 50;
+char *logMessage = (char *)calloc(sizeof(char), 128);
 
 // Initialize the Data Structures
 process procs[P_COUNT];
@@ -20,12 +22,19 @@ ui io[P_COUNT];
 ui cpu[1];
 
 // Read the File Data in to Initialize the Process Array
+if(argc > 1){
+	sprintf(logMessage, "Going to open File %s to populate the Process Array \'procs\'.", argv[1]);
+	appendToLogfile(logMessage);
 
+}else{
+	ret = 1;
+	printf("No FileName Given to populate the Processes Array. Exiting Now.\n");
+}
 // Initialize the Ready Queue by putting all items in.
 
 
 // Begin the Main Loop to Similuate the Scheduler
-
+if(ret == 0){
 
 // Sort the Priority Queue
 
@@ -42,8 +51,8 @@ ui cpu[1];
 // Update all values and statistics for processes waiting for IO
 // If any are finished, move them to the ready queue.
 
-
-
+}
+free(logMessage);
 return(ret);
 }
 
