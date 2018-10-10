@@ -2,6 +2,9 @@
 #define A1_H
 // CS 4540 Fall '18 Assignment # 2
 // Author: Bob Hardin
+#define P_COUNT 48	// If were're going to define things, lets do it in the Header File.
+#define LOG_FILE_NAME "Scheduler.log" // Yeah well, I need a global log file... So Shoot Me.
+
 typedef unsigned short ui;
 struct process_struct {
 	ui priority; // never changes

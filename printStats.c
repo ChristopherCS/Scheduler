@@ -3,7 +3,6 @@
 // CS 4540 Fall '18 Assignment # 2
 // Author: Bob Hardin
 
-#define P_COUNT 48
 // a[] must have P_COUNT number of valid structs normally 48 or 0-47 indexes
 void printStats(process a[], os system) {
 	int i, j;
