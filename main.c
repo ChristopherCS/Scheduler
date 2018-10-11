@@ -11,8 +11,9 @@
 
 int main(int argc, char *argv[]){
 // Initialize all the State Variables and Utility Variables.
-  int ret = 0;
+  int ret = 0, i;
   int runningProcesses = P_COUNT;
+  int nready, nio, ncpu;
   int quantum = 50;
   int wait = 50;
   int procsLoaded;
@@ -25,7 +26,7 @@ int main(int argc, char *argv[]){
   ui readyQ[P_COUNT];
   ui io[P_COUNT];
   ui cpu[1];
-
+  ui *rq;
 // Read the File Data in to Initialize the Process Array
 if(argc > 1){
 	sprintf(logMessage, "Opening File %s to populate the Process Array \'procs\'.", argv[1]);
@@ -44,33 +45,44 @@ if(argc > 1){
 	printf("No FileName Given to populate the Processes Array. Exiting Now.\n");
 }
 // Initialize the Ready Queue by putting all items in.
-
-
+appendToLogfile("Populating the ReadyQ");
+for(i=0; i<P_COUNT ; i++){
+  readyQ[i] = i;
+}
+nready = P_COUNT;
+nio = 0;
+ncpu = 0;
 // Begin the Main Loop to Similuate the Scheduler
+appendToLogfile("Main Loop will begin now.");
 if(ret == 0){
+  while(nready+nio+ncpu >0){
 
-// Sort the Priority Queue
+  // Sort the Priority Queue
+  appendToLogfile("About to sort the Ready Q.");
+  rq = readyQ;
+  sortReadyQueue(rq, p,nready);
+  printRQ(rq, p, nready);
+  break;
+  // Update the stats of the process in the CPU. If finished, move to next
+  // destination. If there is nothing in the cpu, then take the
+  // the first item from the Priority Queue, put it in the CPU,
+  // and Shift all other items up in the queue
 
-// Update the stats of the process in the CPU. If finished, move to next
-// destination. If there is nothing in the cpu, then take the
-// the first item from the Priority Queue, put it in the CPU,
-// and Shift all other items up in the queue
+
+  // Update all values and statistics for processes in the Ready Queue. 
+  // If any have waited more than "wait", then increment their priority.
 
 
-// Update all values and statistics for processes in the Ready Queue. 
-// If any have waited more than "wait", then increment their priority.
-
-
-// Update all values and statistics for processes waiting for IO
-// If any are finished, move them to the ready queue.
-
+  // Update all values and statistics for processes waiting for IO
+  // If any are finished, move them to the ready queue.
+  }
 }
 free(logMessage);
 return(ret);
 }
 
 
-
+// Open the Data File. Returns a file pointer.
 FILE *openDataFile(char *fileName){
   FILE *fp;
   char *logString = (char *)malloc(75*sizeof(char));
@@ -142,6 +154,35 @@ int parseDataFile(FILE *dataFile, process *processArray){
   return(numberProcessesParsed);
 }
 
+// Bubble sort based on the priority of the process. 
+// Sorts the ready queue.
+void sortReadyQueue(ui *rq, process *p, int count){
+  char *logMessage = (char *)calloc(sizeof(char), 128);
+  sprintf(logMessage, "Sorting Ready Queue with %d items.", count);
+  int i, j;
+  for(i=0; i<count-1; i++){
+    for(j=0; j<count-i-1; j++){
+      if(p[rq[j]].priority < p[rq[j+1]].priority){
+        swapItems(&rq[j],&rq[j+1]);
+      }
+    }
+  }
+}
 
+// Swaps the places of two items in the ready queue array. 
+// Makes the sort algorithm more readable.
+void swapItems(ui *first, ui *second){
+	int temp = *first;
+	*first = *second;
+	*second = temp;
+}
 
+void printRQ(ui *rq, process *p, int count){
+  int i;
+  printf("The Ready Queue is:\n**POINTER#**\t**PRIORITY**\n");
+
+  for(i=0; i<count; i++){
+    printf("   %u  \t\t\t  %u  \n", rq[i], p[rq[i]].priority);
+  }
+}
 

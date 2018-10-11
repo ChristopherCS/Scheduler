@@ -35,7 +35,9 @@ void appendToLogfile(char *message);
 FILE *openDataFile(char *fileName);
 int parseDataFile(FILE *dataFile, process *processArray);
 void closeDataFile(FILE *fp);
-
+void sortReadyQueue(ui *rq, process *p, int count);
+void swapItems(ui *first, ui *second);
+void printRQ(ui *rq, process *p, int count);
 
 #endif
 

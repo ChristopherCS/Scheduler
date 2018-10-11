@@ -8,7 +8,6 @@ main.o : printStats.o a2.h
 printStats.o : a2.h
 
 test: main
-	rm Scheduler.log
 	./schedulerSim a2in.txt
 
 
