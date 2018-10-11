@@ -41,6 +41,6 @@ void sortReadyQueue(ui *rq, process *p, int count);
 void swapItems(ui *first, ui *second);
 void printRQ(ui *rq, process *p, int count);
 ui pop(ui *rq, int count);
-void updateCPU(ui *cpu, ui *rq, process *p, int *rqCount);
+int updateCPU(ui *cpu, process *p);
 #endif
 

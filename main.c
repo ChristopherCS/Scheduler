@@ -17,16 +17,18 @@ int main(int argc, char *argv[]){
   int wait = 50;
   int procsLoaded;
   char *logMessage = (char *)calloc(sizeof(char), 128);
+  int moveCPU;
   FILE *procsData;
   process *p;
 
   // Initialize the Data Structures
   process procs[P_COUNT];
   ui readyQ[P_COUNT];
-  ui io[P_COUNT];
+  ui IO[P_COUNT];
   ui CPU[1];
   ui *cpu;
   ui *rq;
+  ui *io;
 // Read the File Data in to Initialize the Process Array
 if(argc > 1){
 	sprintf(logMessage, "Opening File %s to populate the Process Array \'procs\'.", argv[1]);
@@ -59,23 +61,26 @@ if(ret == 0){
 
   // Sort the Priority Queue
   appendToLogfile("About to sort the Ready Q.");
+  // mapping each array to an ui* variable makes passing them simpler
   rq = readyQ;
+  io = IO;
+  cpu = CPU;
+
   sortReadyQueue(rq, p,nready);
     // printRQ(rq, p, nready); //This is used for testing.
 
-  // Update the stats of the process in the CPU. If finished, move to next
-  // destination.
+  // If there is nothing in the cpu, then take the
+  // the first item from the Priority Queue, put it in the CPU,
+  // and Shift all other items up in the queue
   if(ncpu == 0){
     cpu[0] = pop(rq, nready);
     nready--;
     ncpu++;
   }
-  cpu = CPU;
-  updateCPU(cpu, rq, p, &nready);
+  // Update the stats of the process in the CPU.
+  moveCPU = updateCPU(cpu, p);
   
-  // If there is nothing in the cpu, then take the
-  // the first item from the Priority Queue, put it in the CPU,
-  // and Shift all other items up in the queue
+ 
 
 
   // Update all values and statistics for processes in the Ready Queue. 
@@ -84,6 +89,21 @@ if(ret == 0){
 
   // Update all values and statistics for processes waiting for IO
   // If any are finished, move them to the ready queue.
+
+  // Move CPU if Necessary
+  switch(moveCPU){
+    case -1: //readyQueue
+      readyQ[nready++] = cpu[0];
+      cpu[0] = pop(rq, nready--);
+    break;
+
+    case 0:
+    break;
+
+    case 1: //IO
+
+    break;
+  }
   }
 }
 free(logMessage);
@@ -206,17 +226,20 @@ ui pop(ui *rq, int count){
   return(ret);
 }
 
-// Updates statistics for the proceess currently in the CPU.
+// Updates statistics for the process currently in the CPU.
 // Moves that process to the IO Queue or if complete removes it.
-// returns 0 or -1 depending on if the ready queue has been changed.
-void updateCPU(ui *cpu, ui *rq, process *p, int *rqCount){
+// return indicates where process in CPU should go:
+// -1->readyQueue, 0->nowhere, 1->IO
+int updateCPU(ui *cpu, process *p){
   int ret = 0;
   p[cpu[0]].curCpu++;
   
   if(p[cpu[0]].curCpu == p[cpu[0]].cpu){
     p[cpu[0]].cpuTotal += p[cpu[0]].cpu;
     p[cpu[0]].curCpu = 0;
-
+    ret = 1;
+  }else if(p[cpu[0]].curCpu == QUANTUM){
+    ret = -1;
   }
   return(ret);
 }
