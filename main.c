@@ -18,6 +18,7 @@ int main(int argc, char *argv[]){
   int procsLoaded;
   char *logMessage = (char *)calloc(sizeof(char), 128);
   FILE *procsData;
+  process *p;
 
   // Initialize the Data Structures
   process procs[P_COUNT];
@@ -30,8 +31,10 @@ if(argc > 1){
 	sprintf(logMessage, "Opening File %s to populate the Process Array \'procs\'.", argv[1]);
 	appendToLogfile(logMessage);
 	procsData = openDataFile(argv[1]);
-	procsLoaded = parseDataFile(procsData, (process **)&procs);
+  p = procs;
+	procsLoaded = parseDataFile(procsData, p);
   sprintf(logMessage, "Loaded %d processes successfully into the processes array.", procsLoaded);
+  appendToLogfile(logMessage);
 	sprintf(logMessage, "Closing file %s.", argv[1]);
 	appendToLogfile(logMessage);
 	closeDataFile(procsData);
@@ -100,30 +103,41 @@ void closeDataFile(FILE *fp){
 }
 
 //Returns the number of processes created.
-int parseDataFile(FILE *dataFile, process *processArray[48]){
+int parseDataFile(FILE *dataFile, process *processArray){
   char buffer[4096];
   char *token;
   char *tokenCounter;
   int numberProcessesParsed = 0;
   int bytesRead;
   char *logMessage = (char *)calloc(sizeof(char), 128);
+  unsigned int priority, cpu, io, runTime;
 
   bytesRead = fread(buffer, sizeof(char), sizeof(buffer), dataFile);
+  //Continue to Read until all bytes read.
   while(bytesRead > 0){
     sprintf(logMessage, "Just read %d bytes from the dataFile.", bytesRead);
     appendToLogfile(logMessage);
-
+    //Grab tokens delineated by newlines.
     token = strtok_r(buffer, "\n", &tokenCounter);
     while(token != NULL){
       sprintf(logMessage, "Processing next line of data:\n\r%s", token);
       appendToLogfile(logMessage);
+    
+      sscanf(token, "%u %u %u %u", &priority, &cpu, &io, &runTime);
+      processArray[numberProcessesParsed].priority = priority;
+      processArray[numberProcessesParsed].cpu = cpu;
+      processArray[numberProcessesParsed].io = io;
+      processArray[numberProcessesParsed].runTime = runTime;
+
+      numberProcessesParsed++;
       token = strtok_r(NULL, "\n", &tokenCounter);
     }
 
     bytesRead = fread(buffer, sizeof(char), sizeof(buffer), dataFile);
   }
 
-
+  sprintf(logMessage, "Finished Processing Data File. Populated %d processes in the process array.", numberProcessesParsed);
+  appendToLogfile(logMessage);
   free(logMessage);
   return(numberProcessesParsed);
 }

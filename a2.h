@@ -33,7 +33,7 @@ typedef struct os_struct os;
 void printStats(process a[], os system);
 void appendToLogfile(char *message);
 FILE *openDataFile(char *fileName);
-int parseDataFile(FILE *dataFile, process *processArray[48]);
+int parseDataFile(FILE *dataFile, process *processArray);
 void closeDataFile(FILE *fp);
 
 
