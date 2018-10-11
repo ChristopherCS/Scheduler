@@ -3,3 +3,4 @@ schedulerSim
 *.o
 .vscode/*
 .v*
+/.vscode
