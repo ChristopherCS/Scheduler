@@ -18,4 +18,4 @@ clean:
 	rm -f *.o core schedulerSim *.log
 
 log : 
-	cat Scheduler.log
+	cat scheduler.log

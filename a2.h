@@ -3,7 +3,9 @@
 // CS 4540 Fall '18 Assignment # 2
 // Author: Bob Hardin
 #define P_COUNT 48	// If were're going to define things, lets do it in the Header File.
-#define LOG_FILE_NAME "Scheduler.log" // Yeah well, I need a global log file... So Shoot Me.
+#define LOG_FILE_NAME "scheduler.log" // Yeah well, I need a global log file... So Shoot Me.
+#define QUANTUM 50 // As long as these values are being Hard Coded, Best Practice is to define them Globally. 
+#define WAIT 50	// Same as above.
 
 typedef unsigned short ui;
 struct process_struct {
@@ -38,6 +40,7 @@ void closeDataFile(FILE *fp);
 void sortReadyQueue(ui *rq, process *p, int count);
 void swapItems(ui *first, ui *second);
 void printRQ(ui *rq, process *p, int count);
-
+ui pop(ui *rq, int count);
+void updateCPU(ui *cpu, ui *rq, process *p, int *rqCount);
 #endif
 

@@ -14,7 +14,6 @@ int main(int argc, char *argv[]){
   int ret = 0, i;
   int runningProcesses = P_COUNT;
   int nready, nio, ncpu;
-  int quantum = 50;
   int wait = 50;
   int procsLoaded;
   char *logMessage = (char *)calloc(sizeof(char), 128);
@@ -25,7 +24,8 @@ int main(int argc, char *argv[]){
   process procs[P_COUNT];
   ui readyQ[P_COUNT];
   ui io[P_COUNT];
-  ui cpu[1];
+  ui CPU[1];
+  ui *cpu;
   ui *rq;
 // Read the File Data in to Initialize the Process Array
 if(argc > 1){
@@ -61,10 +61,19 @@ if(ret == 0){
   appendToLogfile("About to sort the Ready Q.");
   rq = readyQ;
   sortReadyQueue(rq, p,nready);
-  printRQ(rq, p, nready);
-  break;
+    // printRQ(rq, p, nready); //This is used for testing.
+
   // Update the stats of the process in the CPU. If finished, move to next
-  // destination. If there is nothing in the cpu, then take the
+  // destination.
+  if(ncpu == 0){
+    cpu[0] = pop(rq, nready);
+    nready--;
+    ncpu++;
+  }
+  cpu = CPU;
+  updateCPU(cpu, rq, p, &nready);
+  
+  // If there is nothing in the cpu, then take the
   // the first item from the Priority Queue, put it in the CPU,
   // and Shift all other items up in the queue
 
@@ -177,6 +186,7 @@ void swapItems(ui *first, ui *second){
 	*second = temp;
 }
 
+// Prints the Ready Queue to Standard out
 void printRQ(ui *rq, process *p, int count){
   int i;
   printf("The Ready Queue is:\n**POINTER#**\t**PRIORITY**\n");
@@ -186,3 +196,27 @@ void printRQ(ui *rq, process *p, int count){
   }
 }
 
+// Pops the first item off the array, shifts all other items down.
+ui pop(ui *rq, int count){
+  ui ret = rq[0];
+  int i;
+  for(i=0; i<count; i++){
+    rq[i] = rq[i+1];
+  }
+  return(ret);
+}
+
+// Updates statistics for the proceess currently in the CPU.
+// Moves that process to the IO Queue or if complete removes it.
+// returns 0 or -1 depending on if the ready queue has been changed.
+void updateCPU(ui *cpu, ui *rq, process *p, int *rqCount){
+  int ret = 0;
+  p[cpu[0]].curCpu++;
+  
+  if(p[cpu[0]].curCpu == p[cpu[0]].cpu){
+    p[cpu[0]].cpuTotal += p[cpu[0]].cpu;
+    p[cpu[0]].curCpu = 0;
+
+  }
+  return(ret);
+}

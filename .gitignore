@@ -1,6 +1,5 @@
 *.log
 schedulerSim
 *.o
-.vscode/*
-.v*
 /.vscode
+test
