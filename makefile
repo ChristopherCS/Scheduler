@@ -2,7 +2,7 @@ CC = gcc
 CFLAGS = -g -Wall -pedantic
 
 main : main.o printStats.o 
-	${CC} ${CFLAGS} -o schedulerSim main.o 
+	${CC} ${CFLAGS} -o schedulerSim main.o printStats.o
 main.o : printStats.o a2.h
 
 printStats.o : a2.h

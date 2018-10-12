@@ -7,7 +7,7 @@
 #define QUANTUM 50 // As long as these values are being Hard Coded, Best Practice is to define them Globally. 
 #define WAIT 50	// Same as above.
 
-typedef unsigned short ui;
+typedef unsigned int ui;
 struct process_struct {
 	ui priority; // never changes
 	ui cpu;  // time in cpu before I/O
@@ -42,5 +42,8 @@ void swapItems(ui *first, ui *second);
 void printRQ(ui *rq, process *p, int count);
 ui pop(ui *rq, int count);
 int updateCPU(ui *cpu, process *p);
+void updateRQ(process *p, ui *rq, int nready);
+void updateIO(process *p, ui *io, int *nio, ui *rq, int *nready);
+void swapToRQ(ui *io, int pos, int *nio, ui *rq, int *nready);
 #endif
 

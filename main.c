@@ -12,14 +12,16 @@
 int main(int argc, char *argv[]){
 // Initialize all the State Variables and Utility Variables.
   int ret = 0, i;
-  int runningProcesses = P_COUNT;
   int nready, nio, ncpu;
-  int wait = 50;
   int procsLoaded;
   char *logMessage = (char *)calloc(sizeof(char), 128);
   int moveCPU;
   FILE *procsData;
   process *p;
+  os sys; 
+  sys.quantum = QUANTUM;
+  sys.wait = WAIT;
+  int nCycles = 0;
 
   // Initialize the Data Structures
   process procs[P_COUNT];
@@ -29,85 +31,104 @@ int main(int argc, char *argv[]){
   ui *cpu;
   ui *rq;
   ui *io;
-// Read the File Data in to Initialize the Process Array
-if(argc > 1){
-	sprintf(logMessage, "Opening File %s to populate the Process Array \'procs\'.", argv[1]);
-	appendToLogfile(logMessage);
-	procsData = openDataFile(argv[1]);
-  p = procs;
-	procsLoaded = parseDataFile(procsData, p);
-  sprintf(logMessage, "Loaded %d processes successfully into the processes array.", procsLoaded);
-  appendToLogfile(logMessage);
-	sprintf(logMessage, "Closing file %s.", argv[1]);
-	appendToLogfile(logMessage);
-	closeDataFile(procsData);
+  // Read the File Data in to Initialize the Process Array
+  if(argc > 1){
+    sprintf(logMessage, "Opening File %s to populate the Process Array \'procs\'.", argv[1]);
+    appendToLogfile(logMessage);
+    procsData = openDataFile(argv[1]);
+    p = procs;
+    procsLoaded = parseDataFile(procsData, p);
+    sprintf(logMessage, "Loaded %d processes successfully into the processes array.", procsLoaded);
+    appendToLogfile(logMessage);
+    sprintf(logMessage, "Closing file %s.", argv[1]);
+    appendToLogfile(logMessage);
+    closeDataFile(procsData);
 
-}else{
-	ret = 1;
-	printf("No FileName Given to populate the Processes Array. Exiting Now.\n");
-}
-// Initialize the Ready Queue by putting all items in.
-appendToLogfile("Populating the ReadyQ");
-for(i=0; i<P_COUNT ; i++){
-  readyQ[i] = i;
-}
-nready = P_COUNT;
-nio = 0;
-ncpu = 0;
-// Begin the Main Loop to Similuate the Scheduler
-appendToLogfile("Main Loop will begin now.");
-if(ret == 0){
-  while(nready+nio+ncpu >0){
-
-  // Sort the Priority Queue
-  appendToLogfile("About to sort the Ready Q.");
-  // mapping each array to an ui* variable makes passing them simpler
-  rq = readyQ;
-  io = IO;
-  cpu = CPU;
-
-  sortReadyQueue(rq, p,nready);
-    // printRQ(rq, p, nready); //This is used for testing.
-
-  // If there is nothing in the cpu, then take the
-  // the first item from the Priority Queue, put it in the CPU,
-  // and Shift all other items up in the queue
-  if(ncpu == 0){
-    cpu[0] = pop(rq, nready);
-    nready--;
-    ncpu++;
+  }else{
+    ret = 1;
+    printf("No FileName Given to populate the Processes Array. Exiting Now.\n");
   }
-  // Update the stats of the process in the CPU.
-  moveCPU = updateCPU(cpu, p);
+  // Initialize the Ready Queue by putting all items in.
+  appendToLogfile("Populating the ReadyQ");
+  for(i=0; i<P_COUNT ; i++){
+    readyQ[i] = i;
+    p[readyQ[i]].curPrior = p[readyQ[i]].priority;
+  }
+  nready = P_COUNT;
+  nio = 0;
+  ncpu = 0;
+  // Begin the Main Loop to Similuate the Scheduler
+  appendToLogfile("Main Loop will begin now.");
+  if(ret == 0){
+    while(nready+nio+ncpu >0){
+
+    // Sort the Priority Queue
+    appendToLogfile("About to sort the Ready Q.");
+    // mapping each array to an ui* variable makes passing them simpler
+    rq = readyQ;
+    io = IO;
+    cpu = CPU;
+
+    sortReadyQueue(rq, p,nready);
+      // printRQ(rq, p, nready); //This is used for testing.
+
+    // If there is nothing in the cpu, then take the
+    // the first item from the Priority Queue, put it in the CPU,
+    // and Shift all other items up in the queue
+    if(ncpu == 0){
+      cpu[0] = pop(rq, nready);
+      nready--;
+      ncpu++;
+    }
+    // Update the stats of the process in the CPU.
+    moveCPU = updateCPU(cpu, p);
+    
   
- 
 
 
-  // Update all values and statistics for processes in the Ready Queue. 
-  // If any have waited more than "wait", then increment their priority.
+    // Update all values and statistics for processes in the Ready Queue. 
+    // If any have waited more than "wait", then increment their priority.
+    updateRQ(p, rq, nready);
 
+    // Update all values and statistics for processes waiting for IO
+    // If any are finished, move them to the ready queue.
+    updateIO(p, io, &nio, rq, &nready);
 
-  // Update all values and statistics for processes waiting for IO
-  // If any are finished, move them to the ready queue.
+    // Move CPU if Necessary
+    switch(moveCPU){
+      case -1: //readyQueue
+        readyQ[nready++] = cpu[0];
+        sortReadyQueue(rq, p, nready);
+        cpu[0] = pop(rq, nready--);
+        p[cpu[0]].wait = 0;
+        p[cpu[0]].curPrior = p[cpu[0]].priority;
+      break;
 
-  // Move CPU if Necessary
-  switch(moveCPU){
-    case -1: //readyQueue
-      readyQ[nready++] = cpu[0];
-      cpu[0] = pop(rq, nready--);
-    break;
+      case 0:
+      break;
 
-    case 0:
-    break;
-
-    case 1: //IO
-
-    break;
+      case 1: //IO
+        io[nio++] = cpu[0];
+        cpu[0] = pop(rq, nready--);
+        p[cpu[0]].wait = 0;
+        p[cpu[0]].curPrior = p[cpu[0]].priority;
+      break;
+      case 2: //Done
+        if(nready > 0){
+          cpu[0] = pop(rq, nready--);
+          p[cpu[0]].wait = 0;
+          p[cpu[0]].curPrior = p[cpu[0]].priority;
+        }else{
+          ncpu = 0;
+        }
+      break;
+      }
+      if(nCycles++ == 10000) break;
+    }
   }
-  }
-}
-free(logMessage);
-return(ret);
+  printStats(p, sys);
+  free(logMessage);
+  return(ret);
 }
 
 
@@ -229,7 +250,7 @@ ui pop(ui *rq, int count){
 // Updates statistics for the process currently in the CPU.
 // Moves that process to the IO Queue or if complete removes it.
 // return indicates where process in CPU should go:
-// -1->readyQueue, 0->nowhere, 1->IO
+// -1->readyQueue, 0->stays in cpu, 1->IO, 2 complete
 int updateCPU(ui *cpu, process *p){
   int ret = 0;
   p[cpu[0]].curCpu++;
@@ -237,9 +258,53 @@ int updateCPU(ui *cpu, process *p){
   if(p[cpu[0]].curCpu == p[cpu[0]].cpu){
     p[cpu[0]].cpuTotal += p[cpu[0]].cpu;
     p[cpu[0]].curCpu = 0;
-    ret = 1;
+    if(p[cpu[0]].cpuTotal + p[cpu[0]].ioTotal == p[cpu[0]].runTime){
+      ret = 2;
+    }else{
+      ret = 1;
+    }
   }else if(p[cpu[0]].curCpu == QUANTUM){
     ret = -1;
   }
   return(ret);
+}
+
+// Updates statistics for the processes in the ready queue
+void updateRQ(process *p, ui *rq, int nready){
+  int i;
+
+  for(i=0; i<nready; i++){
+    p[rq[i]].waitSum++;
+    if(p[rq[i]].wait++ == 0){
+      p[rq[i]].waitCount++;
+    }
+    if(p[rq[i]].wait == WAIT){
+      p[rq[i]].curPrior++;
+    }
+  }
+
+}
+
+// Updates statistics for processes awaiting IO
+void updateIO(process *p, ui *io, int *nio, ui *rq, int *nready){
+  int i;
+
+  for(i=0 ; i<*nio ; i++){
+    p[io[i]].curIo++;
+    p[io[i]].ioTotal++;
+    if(p[io[i]].curIo == p[io[i]].io){
+      p[io[i]].curIo = 0;
+      swapToRQ(io, i, &nio, rq, &nready);
+    }
+  }
+}
+
+// Swaps a process from ReadyQueue to IOQueue
+void swapToRQ(ui *io, int pos, int *nio, ui *rq, int *nready){
+  int i;
+  rq[*nready++] = io[pos];
+  for(i=pos; i<(*nio-1); i++){
+    io[i] = io[i+1];
+  }
+  *nio--;
 }
