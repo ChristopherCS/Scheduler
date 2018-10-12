@@ -21,7 +21,6 @@ int main(int argc, char *argv[]){
   os sys; 
   sys.quantum = QUANTUM;
   sys.wait = WAIT;
-  int nCycles = 0;
 
   // Initialize the Data Structures
   process procs[P_COUNT];
@@ -92,7 +91,9 @@ int main(int argc, char *argv[]){
 
     // Update all values and statistics for processes waiting for IO
     // If any are finished, move them to the ready queue.
+    printf("Updating IO. nio = %d, nready = %d\n",nio, nready);
     updateIO(p, io, &nio, rq, &nready);
+    printf("Updated IO. nio = %d, nready = %d\n",nio, nready);
 
     // Move CPU if Necessary
     switch(moveCPU){
@@ -123,7 +124,8 @@ int main(int argc, char *argv[]){
         }
       break;
       }
-      if(nCycles++ == 10000) break;
+      printRQ(rq, p, nready);
+      printRQ(cpu, p, 1);
     }
   }
   printStats(p, sys);
@@ -230,10 +232,10 @@ void swapItems(ui *first, ui *second){
 // Prints the Ready Queue to Standard out
 void printRQ(ui *rq, process *p, int count){
   int i;
-  printf("The Ready Queue is:\n**POINTER#**\t**PRIORITY**\n");
+  printf("The Ready Queue is:\n**POINTER#**\t**CURPRIORITY**\t**WAIT**\t**CURCPU**\t**\n");
 
   for(i=0; i<count; i++){
-    printf("   %u  \t\t\t  %u  \n", rq[i], p[rq[i]].priority);
+    printf("   %u  \t\t   %u  \t\t  %u  \t\t  %u \n", rq[i], p[rq[i]].curPrior, p[rq[i]].wait, p[rq[i]].curCpu);
   }
 }
 
@@ -241,7 +243,7 @@ void printRQ(ui *rq, process *p, int count){
 ui pop(ui *rq, int count){
   ui ret = rq[0];
   int i;
-  for(i=0; i<count; i++){
+  for(i=0; i<count-1; i++){
     rq[i] = rq[i+1];
   }
   return(ret);
@@ -255,15 +257,15 @@ int updateCPU(ui *cpu, process *p){
   int ret = 0;
   p[cpu[0]].curCpu++;
   
-  if(p[cpu[0]].curCpu == p[cpu[0]].cpu){
+  if(p[cpu[0]].curCpu >= p[cpu[0]].cpu){
     p[cpu[0]].cpuTotal += p[cpu[0]].cpu;
     p[cpu[0]].curCpu = 0;
-    if(p[cpu[0]].cpuTotal + p[cpu[0]].ioTotal == p[cpu[0]].runTime){
+    if(p[cpu[0]].cpuTotal + p[cpu[0]].ioTotal >= p[cpu[0]].runTime){
       ret = 2;
     }else{
       ret = 1;
     }
-  }else if(p[cpu[0]].curCpu == QUANTUM){
+  }else if(p[cpu[0]].curCpu >= QUANTUM){
     ret = -1;
   }
   return(ret);
@@ -294,7 +296,8 @@ void updateIO(process *p, ui *io, int *nio, ui *rq, int *nready){
     p[io[i]].ioTotal++;
     if(p[io[i]].curIo == p[io[i]].io){
       p[io[i]].curIo = 0;
-      swapToRQ(io, i, &nio, rq, &nready);
+      swapToRQ(io, i, nio, rq, nready);
+      *nio--;
     }
   }
 }
@@ -306,5 +309,4 @@ void swapToRQ(ui *io, int pos, int *nio, ui *rq, int *nready){
   for(i=pos; i<(*nio-1); i++){
     io[i] = io[i+1];
   }
-  *nio--;
 }
