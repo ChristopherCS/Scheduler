@@ -33,6 +33,7 @@ typedef struct os_struct os;
 
 // a[] must have count of 48 valid structs 0-47 indexes
 void printStats(process a[], os system);
+void myPrintStats(process a[], os system);
 void appendToLogfile(char *message);
 FILE *openDataFile(char *fileName);
 int parseDataFile(FILE *dataFile, process *processArray);
@@ -45,5 +46,6 @@ int updateCPU(ui *cpu, process *p);
 void updateRQ(process *p, ui *rq, int nready);
 void updateIO(process *p, ui *io, int *nio, ui *rq, int *nready);
 void swapToRQ(ui *io, int pos, int *nio, ui *rq, int *nready);
+void logProcess(process p, int position);
 #endif
 

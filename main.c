@@ -52,17 +52,19 @@ int main(int argc, char *argv[]){
   for(i=0; i<P_COUNT ; i++){
     readyQ[i] = i;
     p[readyQ[i]].curPrior = p[readyQ[i]].priority;
+    logProcess(p[i], i);
   }
   nready = P_COUNT;
   nio = 0;
   ncpu = 0;
+  
   // Begin the Main Loop to Similuate the Scheduler
   appendToLogfile("Main Loop will begin now.");
   if(ret == 0){
     while(nready+nio+ncpu >0){
 
     // Sort the Priority Queue
-    appendToLogfile("About to sort the Ready Q.");
+    // appendToLogfile("About to sort the Ready Q.");
     // mapping each array to an ui* variable makes passing them simpler
     rq = readyQ;
     io = IO;
@@ -91,15 +93,23 @@ int main(int argc, char *argv[]){
 
     // Update all values and statistics for processes waiting for IO
     // If any are finished, move them to the ready queue.
-    printf("Updating IO. nio = %d, nready = %d\n",nio, nready);
+    // printf("Updating IO. nio = %d, nready = %d\n",nio, nready);
     updateIO(p, io, &nio, rq, &nready);
-    printf("Updated IO. nio = %d, nready = %d\n",nio, nready);
+    // printf("Updated IO. nio = %d, nready = %d\n",nio, nready);
 
     // Move CPU if Necessary
     switch(moveCPU){
       case -1: //readyQueue
+        if((p[cpu[0]].cpuTotal+p[cpu[0]].ioTotal) % 1000 == 0){
+          logProcess(p[cpu[0]], cpu[0]);
+        }
         readyQ[nready++] = cpu[0];
-        sortReadyQueue(rq, p, nready);
+        if(p[rq[0]].waitMax < p[rq[0]].wait || p[rq[0]].waitMax == 0){
+          p[rq[0]].waitMax = p[rq[0]].wait;
+        }
+        if(p[rq[0]].waitMin > p[rq[0]].wait || p[rq[0]].waitMin == 0){
+          p[rq[0]].waitMin = p[rq[0]].wait;
+        }
         cpu[0] = pop(rq, nready--);
         p[cpu[0]].wait = 0;
         p[cpu[0]].curPrior = p[cpu[0]].priority;
@@ -109,12 +119,18 @@ int main(int argc, char *argv[]){
       break;
 
       case 1: //IO
+        if((p[cpu[0]].cpuTotal+p[cpu[0]].ioTotal) % 1000 == 0){  
+          logProcess(p[cpu[0]], cpu[0]);
+        }
         io[nio++] = cpu[0];
         cpu[0] = pop(rq, nready--);
         p[cpu[0]].wait = 0;
         p[cpu[0]].curPrior = p[cpu[0]].priority;
       break;
       case 2: //Done
+        if((p[cpu[0]].cpuTotal+p[cpu[0]].ioTotal) % 1000 == 0){  
+          logProcess(p[cpu[0]], cpu[0]);
+        }
         if(nready > 0){
           cpu[0] = pop(rq, nready--);
           p[cpu[0]].wait = 0;
@@ -124,8 +140,8 @@ int main(int argc, char *argv[]){
         }
       break;
       }
-      printRQ(rq, p, nready);
-      printRQ(cpu, p, 1);
+      // printRQ(rq, p, nready);
+      // printRQ(cpu, p, 1);
     }
   }
   printStats(p, sys);
@@ -161,6 +177,14 @@ void appendToLogfile(char *message){
   fclose(logFile);
 }
 
+void logProcess(process p, int position){
+  char *logMessage = (char *)calloc(sizeof(char), 256);
+  sprintf(logMessage, "Position: %d\npriority: %u\ncpu: %u\nio: %u\nruntime:%u\ncurPrior: %u\ncpuTotal: %u\nioTotal: %u\nwaitSum: %u\nwaitCount:%u\nwaitMin: %u\nwaitMax:%u\n", position, p.priority, p.cpu, p.io, p.runTime, p.curPrior, p.cpuTotal, p.ioTotal, p.waitSum, p.waitCount, p.waitMin, p.waitMax);
+  appendToLogfile(logMessage);
+  free(logMessage);
+
+}
+
 
 void closeDataFile(FILE *fp){
   fclose(fp);
@@ -188,10 +212,23 @@ int parseDataFile(FILE *dataFile, process *processArray){
       appendToLogfile(logMessage);
     
       sscanf(token, "%u %u %u %u", &priority, &cpu, &io, &runTime);
+      // After getting a bunch of very ugly results, and spending much time scratching my head
+      // I realized all the values need to be initialized before running the simulation. 
+      // Since I didn't calloc the arrays, things aren't automatically zero.
       processArray[numberProcessesParsed].priority = priority;
       processArray[numberProcessesParsed].cpu = cpu;
       processArray[numberProcessesParsed].io = io;
       processArray[numberProcessesParsed].runTime = runTime;
+      processArray[numberProcessesParsed].curCpu = 0;
+      processArray[numberProcessesParsed].ioTotal = 0;
+      processArray[numberProcessesParsed].cpuTotal = 0;
+      processArray[numberProcessesParsed].wait = 0;
+      processArray[numberProcessesParsed].waitCount = 0;
+      processArray[numberProcessesParsed].waitMax = 0;
+      processArray[numberProcessesParsed].waitMin = 0;
+      processArray[numberProcessesParsed].waitSum = 0;
+      processArray[numberProcessesParsed].curPrior = priority;
+      processArray[numberProcessesParsed].curIo = 0;
 
       numberProcessesParsed++;
       token = strtok_r(NULL, "\n", &tokenCounter);
@@ -214,7 +251,7 @@ void sortReadyQueue(ui *rq, process *p, int count){
   int i, j;
   for(i=0; i<count-1; i++){
     for(j=0; j<count-i-1; j++){
-      if(p[rq[j]].priority < p[rq[j+1]].priority){
+      if(p[rq[j]].curPrior < p[rq[j+1]].curPrior){
         swapItems(&rq[j],&rq[j+1]);
       }
     }
@@ -280,7 +317,7 @@ void updateRQ(process *p, ui *rq, int nready){
     if(p[rq[i]].wait++ == 0){
       p[rq[i]].waitCount++;
     }
-    if(p[rq[i]].wait == WAIT){
+    if(p[rq[i]].wait >= WAIT){
       p[rq[i]].curPrior++;
     }
   }
@@ -294,10 +331,12 @@ void updateIO(process *p, ui *io, int *nio, ui *rq, int *nready){
   for(i=0 ; i<*nio ; i++){
     p[io[i]].curIo++;
     p[io[i]].ioTotal++;
-    if(p[io[i]].curIo == p[io[i]].io){
+    if(p[io[i]].curIo >= p[io[i]].io){
       p[io[i]].curIo = 0;
+      // printf("Ready Queue Count Was: %d\n", *nready);
       swapToRQ(io, i, nio, rq, nready);
-      *nio--;
+      // printf("Ready Queue is now: %d\n", *nready);
+      *nio = *nio-1;
     }
   }
 }
@@ -305,7 +344,8 @@ void updateIO(process *p, ui *io, int *nio, ui *rq, int *nready){
 // Swaps a process from ReadyQueue to IOQueue
 void swapToRQ(ui *io, int pos, int *nio, ui *rq, int *nready){
   int i;
-  rq[*nready++] = io[pos];
+  rq[*nready] = io[pos];
+  *nready = *nready +1;
   for(i=pos; i<(*nio-1); i++){
     io[i] = io[i+1];
   }
